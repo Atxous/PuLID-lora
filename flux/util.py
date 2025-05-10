@@ -140,6 +140,31 @@ def load_flow_model(name: str, device: str = "cuda", hf_download: bool = True):
     return model
 
 
+def load_flow_model_quintized(name: str, device: str = "cuda", hf_download: bool = True):
+    # Loading Flux
+    print("Init model")
+    ckpt_path = 'models/flux-dev-fp8.safetensors'
+    if (
+        not os.path.exists(ckpt_path)
+        and hf_download
+    ):
+        ckpt_path = hf_hub_download("XLabs-AI/flux-dev-fp8", "flux-dev-fp8.safetensors")
+    json_path = hf_hub_download("XLabs-AI/flux-dev-fp8", 'flux_dev_quantization_map.json')
+
+    model = Flux(configs[name].params).to(torch.bfloat16)
+
+    print("Loading checkpoint")
+    # load_sft doesn't support torch.device
+    sd = load_sft(ckpt_path, device='cpu')
+    with open(json_path) as f:
+        quantization_map = json.load(f)
+    print("Start a quantization process...")
+    from optimum.quanto import requantize
+    requantize(model, sd, quantization_map, device=device)
+    print("Model is quantized!")
+    return model
+
+
 def load_t5(device: str = "cuda", max_length: int = 512) -> HFEmbedder:
     # max length 64, 128, 256 and 512 should work (if your sequence is short enough)
     return HFEmbedder("XLabs-AI/xflux_text_encoders", max_length=max_length, torch_dtype=torch.bfloat16).to(device)

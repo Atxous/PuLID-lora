@@ -20,6 +20,15 @@ MODEL_CACHE = "models"
 
 
 @dataclass
+class SamplingOptions:
+    prompt: str
+    width: int
+    height: int
+    num_steps: int
+    guidance: float
+    seed: int
+
+@dataclass
 class ModelSpec:
     params: FluxParams
     ae_params: AutoEncoderParams
